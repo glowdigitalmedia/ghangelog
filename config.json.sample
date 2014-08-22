@@ -1,0 +1,8 @@
+{
+    "token": "***********************************************",
+    "host": "localhost",
+    "port": 8080,
+    "wiki_git_url": "github.com/glowdigitalmedia/glowmachine.wiki.git",
+    "git_username": "andreagrandi",
+    "wiki_changelog_path": "glowmachine.wiki/Backend-Changelog.md"
+}
