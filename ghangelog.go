@@ -108,6 +108,16 @@ func parseGhPost(rw http.ResponseWriter, request *http.Request) {
 
 			wiki_lines := strings.Split(string(content), "\n")
 
+			// Properly format the changelog rows to append to the wiki page
+			var changelog_lines []string
+
+			for _, bl := range body_lines {
+				line_elements := strings.Split(bl, " ")
+				changelog_line := fmt.Sprintf("[#%s](../issues/%s) %s", line_elements[0][1:],
+					line_elements[0][1:], strings.Join(line_elements[1:], " "))
+				changelog_lines = append(changelog_lines, changelog_line)
+			}
+
 			// Check if the released version is the same we have at the beginning of the wiki
 			fmt.Println("Parsing wiki lines ...")
 			if wiki_lines[0] == fmt.Sprintf("## %s", version) {
@@ -115,7 +125,7 @@ func parseGhPost(rw http.ResponseWriter, request *http.Request) {
 				for ln, line := range wiki_lines {
 					if line == "" {
 						wiki_lines = append(wiki_lines[:ln],
-							append(body_lines, wiki_lines[ln:]...)...)
+							append(changelog_lines, wiki_lines[ln:]...)...)
 
 						fmt.Printf("Writing changes to %s ...\n", configuration.WikiChangelogPath)
 						wiki_output := []byte(strings.Join(wiki_lines, "\n"))
