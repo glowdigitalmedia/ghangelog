@@ -126,48 +126,49 @@ func parseGhPost(rw http.ResponseWriter, request *http.Request) {
 					if line == "" {
 						wiki_lines = append(wiki_lines[:ln],
 							append(changelog_lines, wiki_lines[ln:]...)...)
-
-						fmt.Printf("Writing changes to %s ...\n", configuration.WikiChangelogPath)
-						wiki_output := []byte(strings.Join(wiki_lines, "\n"))
-						err := ioutil.WriteFile(configuration.WikiChangelogPath, wiki_output,
-							os.ModeAppend)
-
-						if err != nil {
-							log.Fatalf("Error writing to %s: %s", configuration.WikiChangelogPath,
-								err)
-						}
-
-						// Commit the edited wiki
-						commit_command := fmt.Sprintf("git -C %s commit -a -m '%s'",
-							configuration.WikiPath, payload.Request.Title)
-						fmt.Printf("Executing: %s\n", commit_command)
-						cmd := exec.Command("sh", "-c", commit_command)
-						cmd.Stdout = &output
-						err = cmd.Run()
-
-						if err != nil {
-							log.Fatal("Error in git (%s): %s", commit_command, err)
-						}
-
-						// Push the wiki page on GitHub
-						push_command := fmt.Sprintf("git -C %s push origin master",
-							configuration.WikiPath)
-						fmt.Printf("Executing: %s\n", push_command)
-						cmd = exec.Command("sh", "-c", push_command)
-						cmd.Stdout = &output
-						err = cmd.Run()
-
-						if err != nil {
-							log.Fatal("Error in git (%s): %s", push_command, err)
-						}
-
 						break
 					}
 				}
 
 			} else {
 				// Add a new section with the new version at the beginning of the file
-				fmt.Println(body_lines)
+				changelog_header := []string{fmt.Sprintf("## %s\n\n", version)}
+				changelog_lines = append(changelog_header, changelog_lines...)
+				wiki_lines = append(wiki_lines[:0], append(changelog_lines, wiki_lines[0:]...)...)
+			}
+
+			fmt.Printf("Writing changes to %s ...\n", configuration.WikiChangelogPath)
+			wiki_output := []byte(strings.Join(wiki_lines, "\n"))
+			err = ioutil.WriteFile(configuration.WikiChangelogPath, wiki_output,
+				os.ModeAppend)
+
+			if err != nil {
+				log.Fatalf("Error writing to %s: %s", configuration.WikiChangelogPath,
+					err)
+			}
+
+			// Commit the edited wiki
+			commit_command := fmt.Sprintf("git -C %s commit -a -m '%s'",
+				configuration.WikiPath, payload.Request.Title)
+			fmt.Printf("Executing: %s\n", commit_command)
+			cmd := exec.Command("sh", "-c", commit_command)
+			cmd.Stdout = &output
+			err = cmd.Run()
+
+			if err != nil {
+				log.Fatal("Error in git (%s): %s", commit_command, err)
+			}
+
+			// Push the wiki page on GitHub
+			push_command := fmt.Sprintf("git -C %s push origin master",
+				configuration.WikiPath)
+			fmt.Printf("Executing: %s\n", push_command)
+			cmd = exec.Command("sh", "-c", push_command)
+			cmd.Stdout = &output
+			err = cmd.Run()
+
+			if err != nil {
+				log.Fatal("Error in git (%s): %s", push_command, err)
 			}
 		}
 	}
