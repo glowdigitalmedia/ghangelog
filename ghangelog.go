@@ -11,41 +11,47 @@ import (
 )
 
 type Configuration struct {
-	Token             string `json: "token"`
-	Host              string `json: "host"`
-	Port              int32  `json: "port"`
-	WikiGitUrl        string `json: "wiki_git_url"`
-	GitUsername       string `json: "git_username"`
-	WikiChangelogPath string `json: "wiki_changelog_path"`
-	WikiPath          string `json: "wiki_path"`
-	VersionUrl        string `json: "version_url"`
+	Token             string `json:"token"`
+	Host              string `json:"host"`
+	Port              int32  `json:"port"`
+	WikiGitUrl        string `json:"wiki_git_url"`
+	GitUsername       string `json:"git_username"`
+	WikiChangelogPath string `json:"wiki_changelog_path"`
+	WikiPath          string `json:"wiki_path"`
+	VersionUrl        string `json:"version_url"`
 }
 
 type PullRequest struct {
-	State          string `json: "state"`
-	Body           string `json: "body"`
-	MergeCommitSha string `json: "merge_commit_sha"`
-	Title          string `json: "title"`
+	State          string `json:"state"`
+	Body           string `json:"body"`
+	MergeCommitSha string `json:"merge_commit_sha"`
+	Title          string `json:"title"`
+}
+
+type PayLoad struct {
+	Request PullRequest `json:"pull_request"`
 }
 
 var configuration = Configuration{}
 
 func parseGhPost(rw http.ResponseWriter, request *http.Request) {
 	// When a POST is made, read the content and unmarshal it to a struc
-	decoder := json.NewDecoder(request.Body)
+	payload_decoder := json.NewDecoder(request.Body)
 
-	var pr PullRequest
-	err := decoder.Decode(&pr)
+	var payload PayLoad
+	err_payload := payload_decoder.Decode(&payload)
 
-	if err != nil {
-		panic(err)
+	if err_payload != nil {
+		panic(err_payload)
 	}
 
+	fmt.Println(payload)
+
 	// if state is "closed" check "merge_commit_sha" if it's empty or not
-	if pr.State == "closed" {
-		if pr.MergeCommitSha != "" {
+	if payload.Request.State == "closed" {
+		if payload.Request.MergeCommitSha != "" {
 			// Read the "body" and split("\r\n") it into a list of string
-			body_lines := strings.Split(pr.Body, "\r\n")
+			body_lines := strings.Split(payload.Request.Body, "\r\n")
 
 			// check if the project.wiki folder exist: If it doesn't exists git clone, if it exists
 			// git pull
@@ -89,8 +95,9 @@ func parseGhPost(rw http.ResponseWriter, request *http.Request) {
 				// Find the first empty line and insert the body_lines there
 				for ln, line := range wiki_lines {
 					if line == "" {
-						first_part := wiki_lines[0 : ln-1]
-						first_part = first_part[0 : len(first_part)+len(body_lines)]
+						wiki_lines = append(wiki_lines[:ln],
+							append(body_lines, wiki_lines[ln:]...)...)
+						break
 					}
 				}
 
@@ -98,6 +105,8 @@ func parseGhPost(rw http.ResponseWriter, request *http.Request) {
 				// Add a new section with the new version at the beginning of the file
 				fmt.Println(body_lines)
 			}
+
+			fmt.Println(wiki_lines)
 		}
 	}
 }
